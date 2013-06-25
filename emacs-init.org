@@ -2,116 +2,96 @@
 #+OPTIONS: TOC:t
 
 * What
-  This is my mostly scavanged Emacs config written after a few weeks of
-  use. It's written with org-babel in a "literal programming" fashion.
-
+  This is my mostly scavanged Emacs init written after a few months of use. It's
+  written with org-babel in a "literal programming" fashion.
 * Using
   Only tested with Emacs 24. Load it with =(org-babel-load-file
   "/path/to/file")=.
-
 * Config
 ** Personal info
-   #+begin_src emacs-lisp
+   #+BEGIN_SRC emacs-lisp
      (setq user-full-name "David Ed Mellum"
            user-mail-address "david@edmellum.com")
-   #+end_src
+   #+END_SRC
 
 ** Remove GUI
-   Don't need buttons in emacs! By running this early we avoid a flash
-   of buttons before they are removed.
-   #+begin_src emacs-lisp
+   Don't need buttons in emacs! By running this early we avoid a flash of
+   buttons before they are removed.
+   #+BEGIN_SRC emacs-lisp
      (menu-bar-mode -1)
      (tool-bar-mode -1)
      (scroll-bar-mode -1)
-   #+end_src
+     (setq use-dialog-box nil)
+   #+END_SRC
 ** General
-   #+begin_src emacs-lisp
+   Sanify defaults like shortening prompts and removing help text.
+   #+BEGIN_SRC emacs-lisp
      (blink-cursor-mode -1)
      (fset 'yes-or-no-p 'y-or-n-p)
-
+     
+     
      (setq inhibit-startup-message t
            initial-scratch-message nil
+           fill-column 80
            window-combination-resize t
            tramp-default-method "ssh"
-           echo-keystrokes 0.1
+           echo-keystrokes 0.01
            backup-directory-alist `(("." . ,(expand-file-name
-                                             "~/.emacs.d/backups")))
-           )
-     
-     ;; Auto refresh buffers
-     (global-auto-revert-mode 1)
-     (global-subword-mode 1)
-
-     (show-paren-mode 1)
-          
-     ;; Also auto refresh dired, but be quiet about it
-     (setq global-auto-revert-non-file-buffers t)
-     (setq auto-revert-verbose nil)
+                                             "~/.emacs.d/backups"))))
      
      ;; Start Emacs server
      (server-start)
-   #+end_src
+   #+END_SRC
+** Indenting
+   Always indent with two spaces, never tabs.
+   #+BEGIN_SRC emacs-lisp
+     (setq indent-tabs-mode nil
+           tab-width 2)
+   #+END_SRC
+** Reverting
+   Keep undo history when reverting and enable global-auto-revert. Since we have
+   undo history it's cool to auto-revert without prompting.
+
+   TODO: Don't use global-auto-revert with TRAMP.
+   #+BEGIN_SRC emacs-lisp
+     (defun revert-buffer-keep-undo (&rest -)
+       "Revert buffer but keep undo history."
+       (interactive)
+       (let ((inhibit-read-only t))
+         (erase-buffer)
+         (insert-file-contents (buffer-file-name))
+         (set-visited-file-modtime (visited-file-modtime))
+         (set-buffer-modified-p nil)))
+     
+     (setq revert-buffer-function 'revert-buffer-keep-undo)
+     
+     ;; Auto refresh buffers
+     (global-auto-revert-mode 1)
+     
+     ;; Also auto refresh dired, but be quiet about it
+     (setq global-auto-revert-non-file-buffers t
+           auto-revert-verbose nil)
+   #+END_SRC
 ** Scrolling
-   #+begin_src emacs-lisp
+   #+BEGIN_SRC emacs-lisp
      (setq mouse-wheel-scroll-amount '(1 ((shift) . 1)) ;; one line at a time
            mouse-wheel-progressive-speed nil ;; don't accelerate scrolling
            mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-   #+end_src
+   #+END_SRC
 ** Windows specifics
-   #+begin_src emacs-lisp
+   #+BEGIN_SRC emacs-lisp
      (if (file-directory-p "c:/cygwin/bin")
          (add-to-list 'exec-path "c:/cygwin/bin"))
-     
-   #+end_src
+   #+END_SRC
 
-** Mac OSX
-   #+begin_src emacs-lisp
-     (if (string-equal "darwin" (symbol-name system-type))
-         (progn
-           (setq mac-option-modifier 'none
-                 mac-command-modifier 'meta)
-           (add-to-list 'exec-path "/usr/local/bin")
-           (setenv "PATH" (concat "/usr/local/bin:/opt/local/bin:/opt/local/sbin:" (getenv "PATH")))))
-     
-   #+end_src
-** Eshell
-   #+begin_src emacs-lisp
-     (setenv "PATH" (concat
-                            "/usr/local/share/npm/bin:"
-                            "/usr/local/Cellar/ruby/1.9.3-p286/bin:"
-                            "/usr/local/bin:"
-                            "/usr/X11R6/bin:"
-                            (getenv "PATH")))
-     
-   #+end_src
-** Reverting
-   #+begin_src emacs-lisp
-     (add-hook 'before-revert-hook '%before-revert%)
-     (add-hook 'after-revert-hook  '%after-revert%)
-     
-     (defun %before-revert% ()
-       ;; put buffer's contents in the undo list
-       (erase-buffer)
-       ;; save the old list
-       (setq %buffer-undo-list% buffer-undo-list))
-     
-     (defun %after-revert% ()
-       ;; restore the history
-       (setq buffer-undo-list
-             (cons
-              ;; first remember the insertion
-              (cons 1 (point-max))
-              %buffer-undo-list%)))
-     
-   #+end_src
 ** Buffer sanifying
-   #+begin_src emacs-lisp
+   #+BEGIN_SRC emacs-lisp
      (require 'uniquify)
      
      (setq uniquify-buffer-name-style 'post-forward)
-   #+end_src
+   #+END_SRC
 ** Encoding
-   #+begin_src emacs-lisp
+   #+BEGIN_SRC emacs-lisp
      (prefer-coding-system 'utf-8)
      (setq locale-coding-system 'utf-8)
      (set-default-coding-systems 'utf-8)
@@ -122,9 +102,9 @@
       
      ;; Treat clipboard input as UTF-8 string first; compound text next, etc.
      (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING))
-   #+end_src
+   #+END_SRC
 ** Local elisp paths and ELPA archives
-   #+begin_src emacs-lisp
+   #+BEGIN_SRC emacs-lisp
      ;; Set path to dependencies
      (setq site-lisp-dir
            (expand-file-name "elisps" user-emacs-directory))
@@ -142,12 +122,14 @@
      (setq package-archives '(("gnu" . "http://elpa.gnu.org/packages/")
                               ("marmalade" . "http://marmalade-repo.org/packages/")
                               ("melpa" . "http://melpa.milkbox.net/packages/")))
+     
      (dolist (source package-archives)
        (add-to-list 'package-archives source t))
-   #+end_src
+     
+   #+END_SRC
 
 ** ELPA packages
-   #+begin_src emacs-lisp
+   #+BEGIN_SRC emacs-lisp
      (package-initialize)
      
      (unless package-archive-contents
@@ -155,48 +137,52 @@
      
      (setq my-packages
            '(
-             org
              ido
              smex
              json
-             kite
              magit
-             jabber
              keyfreq
              js2-mode
-             js3-mode
-             sass-mode
+             magithub
              undo-tree
              yasnippet
-             golden-ratio
-             auto-complete
-             ace-jump-mode
+             websocket
+             projectile
              expand-region
              markdown-mode
-             handlebars-mode
              multiple-cursors
+             birds-of-paradise-plus-theme
+     
+             js2-mode
+             skewer-mode
+             auto-complete
+             ;; ac-js2
              ))
      
      (dolist (package my-packages) 
        (unless (package-installed-p package)
          (package-install package)))
      
-   #+end_src
+     (add-to-list 'load-path "~/.emacs.d/elisps/kite")
+     
+   #+END_SRC
+
 ** Packages setup
-   #+begin_src emacs-lisp
+   #+BEGIN_SRC emacs-lisp
+     (require 'kite)
      (require 'uniquify)
-   #+end_src
+   #+END_SRC
 ** Modes
-   #+begin_src emacs-lisp
+   #+BEGIN_SRC emacs-lisp
      (global-undo-tree-mode)
      (ido-mode t)
      
      (require 'keyfreq)
      (keyfreq-mode 1)
      (keyfreq-autosave-mode 1)
-   #+end_src
+   #+END_SRC
 ** Ido settings
-   #+begin_src emacs-lisp
+   #+BEGIN_SRC emacs-lisp
      (setq
       ido-case-fold t
       ido-enable-prefix nil
@@ -207,24 +193,20 @@
       
       yas/prompt-functions '(yas/ido-prompt)
       )
-   #+end_src
+   #+END_SRC
 ** Org mode settings
-   #+begin_src emacs-lisp
+   
+   #+BEGIN_SRC emacs-lisp
      (setq org-src-fontify-natively t)
-   #+end_src
-
-** Completion
-   #+begin_src emacs-lisp
-     (global-set-key "\M-/" 'hippie-expand)
-   #+end_src
+   #+END_SRC
 ** Font settings
-   #+begin_src emacs-lisp
-     (set-default-font "Liberation Mono")
+   #+BEGIN_SRC emacs-lisp
+     (set-default-font "Monofur")
      (set-face-attribute 'default nil :height 150)
-   #+end_src
+   #+END_SRC
 
 ** Key bindings
-   #+begin_src emacs-lisp
+   #+BEGIN_SRC emacs-lisp
      [[https://github.com/magnars/expand-region.el][Magnar's Expand Region]]
      (global-set-key (kbd "C-=") 'er/expand-region)
      
@@ -233,197 +215,128 @@
      (global-set-key (kbd "C-<") 'mc/mark-previous-like-this)
      (global-set-key (kbd "C-c C-<") 'mc/mark-all-like-this)
      
-     (define-key global-map (kbd "C-c SPC") 'ace-jump-mode)
+     (global-set-key (kbd "RET") 'reindent-then-newline-and-indent)
      
      (global-set-key (kbd "C-x C-b") 'ibuffer)
-     (global-set-key (kbd "RET") 'reindent-then-newline-and-indent)
 
      (global-set-key "\M-s" 'other-window)
      
-   #+end_src
-
-** js2-mode
-   #+begin_src emacs-lisp
-     (setq js2-auto-indent-p t
-           js2-indent-on-enter-key t
-           js2-enter-indents-newline t
-           js2-basic-offset 2)
-   #+end_src
-** jabber-mode
-   #+begin_src emacs-lisp
-     (setq ssl-program-name "gnutls-cli"
-           ssl-program-arguments '("--insecure" "-p" service host)
-           ssl-certificate-verification-policy 1)
-     
-     (setq starttls-extra-arguments '("--insecure"))
-     
-     (setq jabber-account-list '(
-                                 ;; Knowit
-                                 ("27490_169877@chat.hipchat.com")
-                                 ;; Vimond
-                                 ("29801_305715@chat.hipchat.com")))
-     
-     ;; Don't tell me if someone has changed presence status.
-     ;; (set  jabber-alert-presence-message-function (lambda (who oldstatus newstatus statustext) nil))
-     
-     ;; Message alert hooks
-     ;; (define-jabber-alert echo "Show a message in the echo area"
-     ;;   (lambda (msg)
-     ;;     (unless (minibuffer-prompt)
-     ;;       (message "%s" msg))))
-     
-     (defvar hipchat-number "29801")
-     (defvar hipchat-nickname "David Ed Mellum")
-     
-     ;; Join a room
-     (defun hipchat-join (room)
-       (interactive "sRoom name: ")
-       (jabber-groupchat-join
-        (jabber-read-account)
-        (concat hipchat-number "_" room "@conf.hipchat.com")
-        hipchat-nickname
-        t))
-     
-     ;; Mention nicknames in a way that HipChat clients will pickup
-     (defun hipchat-mention (nickname)
-       (interactive
-        (list (jabber-muc-read-nickname jabber-group "Nickname: ")))
-       (insert (concat "@\"" nickname "\" ")))
-   #+end_src
+   #+END_SRC
 
 * Looks
 ** Theme
-   #+begin_src emacs-lisp
+   #+BEGIN_SRC emacs-lisp
      (deftheme bubbleberry 
-       "bubbleberry - Created by edmellum - 2013-22-02 (+1000) 08:22PM")
+       "bubbleberry - Created by Jasonm23 - 2012-07-02 (+1000) 08:39PM")
      
-     (let ((bubble-yellow "#FF6600")
-           (bubble-purple "#9489C4")
-           (bubble-blue "#699ABC")
-           (bubble-green "#3ca380"))
+     (custom-theme-set-variables
+      'bubbleberry
+      '(linum-format " %7i ")
+      '(fringe-mode 10 nil (fringe)))
      
-       (custom-theme-set-variables
-        'bubbleberry
-        '(linum-format " %7i ")
-        '(fringe-mode 5 nil (fringe)))
+     (custom-theme-set-faces
+      'bubbleberry
+      ;; basic theming.
+      '(default                          ((t (:foreground "#ABAEB3" :background "#222222" ))))
+      '(region                           ((t (:background "#101010" ))))
+      '(cursor                           ((t (:background "#ffffff" ))))
+      '(fringe                           ((t (:background "#222222" :foreground "#ffffff" ))))
+      '(linum                            ((t (:background "#222222" :foreground "#2f2f2f" :box nil :height 100 ))))
+      '(minibuffer-prompt                ((t (:foreground "#9489C4" :weight bold ))))
+      '(minibuffer-message               ((t (:foreground "#ffffff" ))))
+      '(mode-line                        ((t (:foreground "#EEE" :background "#222222" ))))
+      '(mode-line-inactive               ((t (:foreground "#777777" :background "#222222" :weight light :box nil :inherit (mode-line )))))
+      '(vertical-border                  ((t (:foreground "#777777" ))))
      
-       (custom-theme-set-faces
-        'bubbleberry
-        ;; basic theming.
-        '(default                          ((t (:foreground "#ABAEB3" :background "#222222" ))))
-        '(region                           ((t (:background "#101010" ))))
-        '(cursor                           ((t (:background "#ffffff" ))))
-        '(fringe                           ((t (:foreground "#777777" :background "#222222"))))
-        '(linum                            ((t (:background "#222222" :foreground "#2f2f2f" :box nil :height 100 ))))
-        '(minibuffer-prompt                ((t (:foreground "#9489C4" :weight bold ))))
-        '(minibuffer-message               ((t (:foreground "#dddddd" ))))
-        '(mode-line                        ((t (:foreground "#FFFFFF" :background "#222222" ))))
-        '(mode-line-inactive               ((t (:foreground "#777777" :background "#222222" :weight light :box nil :inherit (mode-line )))))
-        '(vertical-border                  ((t (:foreground "#777777" ))))
-        
-        '(font-lock-keyword-face           ((t (:foreground "#3ca380"))))
-        '(font-lock-type-face              ((t (:foreground "#484879"))))
-        '(font-lock-constant-face          ((t (:foreground "#3F5C70"))))
-        '(font-lock-variable-name-face     ((t (:foreground "#547B96"))))
-        '(font-lock-builtin-face           ((t (:foreground "#6767AE"))))
-        '(font-lock-string-face            ((t (:foreground "#699ABC"))))
-        '(font-lock-comment-face           ((t (:foreground "#496b83"))))
-        '(font-lock-comment-delimiter-face ((t (:foreground "#666688"))))
-        '(font-lock-function-name-face     ((t (:foreground "#3ca380"))))
-        '(font-lock-doc-string-face        ((t (:foreground "#496B83"))))
-        
-        '(jabber-chat-prompt-foreign       ((t (:foreground "#484879"))))
-        '(jabber-chat-prompt-system        ((t (:foreground "#496b83"))))
-        '(jabber-chat-prompt-local         ((t (:foreground "#3ca380"))))
-        '(jabber-rare-time-face            ((t (:foreground "#3ca380"))))
-
-        ;; easy defaults...
-        '(tooltip ((default nil) (nil nil)))
-        '(next-error ((t          (:inherit (region)))))
-        '(query-replace ((t       (:inherit (isearch)))))
-        '(button ((t              (:inherit (link)))))
-        '(fixed-pitch ((t         (:family "Monospace")))) 
-        '(variable-pitch ((t      (:family "Sans Serif"))))
-        '(escape-glyph ((t        (:foreground "#FF6600"))))
-        '(mode-line-emphasis ((t  (:weight bold))))
-        '(mode-line-highlight ((t (:box nil (t (:inherit (highlight)))))))
+      '(font-lock-keyword-face           ((t (:foreground "#3ca380"))))
+      '(font-lock-type-face              ((t (:foreground "#484879"))))
+      '(font-lock-constant-face          ((t (:foreground "#3F5C70"))))
+      '(font-lock-variable-name-face     ((t (:foreground "#547B96"))))
+      '(font-lock-builtin-face           ((t (:foreground "#6767AE"))))
+      '(font-lock-string-face            ((t (:foreground "#699ABC"))))
+      '(font-lock-comment-face           ((t (:foreground "#496b83"))))
+      '(font-lock-comment-delimiter-face ((t (:foreground "#666688"))))
+      '(font-lock-function-name-face     ((t (:foreground "#3ca380"))))
+      '(font-lock-doc-string-face        ((t (:foreground "#496B83"))))
      
-        `(diff-added ((t (:foreground, bubble-blue))))
-        `(diff-changed ((t (:foreground, bubble-blue))))
-        `(diff-removed ((t (:foreground, bubble-yellow))))
-        `(diff-header ((t (:background, bubble-blue))))
-        `(diff-file-header ((t (:background, bubble-purple))))
-        `(diff-hunk-header ((t (:background, bubble-purple :foreground, bubble-purple))))
-        
-        '(highlight 
-          ((((class color) (min-colors 88) (background light)) (:background "#003453")) 
-           (((class color) (min-colors 88) (background dark))  (:background "#003450")) 
-           (((class color) (min-colors 16) (background light)) (:background "#003450")) 
-           (((class color) (min-colors 16) (background dark))  (:background "#004560")) 
-           (((class color) (min-colors 8))                     (:foreground "#000000" :background "#00FF00")) (t (:inverse-video t))))
-        
-        '(shadow 
-          ((((class color grayscale) (min-colors 88) (background light)) (:foreground "#999999")) 
-           (((class color grayscale) (min-colors 88) (background dark))  (:foreground "#999999"))
-           (((class color) (min-colors 8) (background light))            (:foreground "#00ff00"))
-           (((class color) (min-colors 8) (background dark))             (:foreground "#ffff00"))))
-        
-        '(trailing-whitespace
-          ((((class color) (background light)) (:background "#ff0000"))
-           (((class color) (background dark))  (:background "#ff0000")) (t (:inverse-video t))))
-        
-        '(link
-          ((((class color) (min-colors 88) (background light)) (:underline t :foreground "#00b7f0")) 
-           (((class color) (background light))                 (:underline t :foreground "#0044FF")) 
-           (((class color) (min-colors 88) (background dark))  (:underline t :foreground "#0099aa"))
-           (((class color) (background dark))                  (:underline t :foreground "#0099aa")) (t (:inherit (underline)))))
-        
-        '(link-visited 
-          ((default                            (:inherit (link))) 
-           (((class color) (background light)) (:inherit (link))) 
-           (((class color) (background dark))  (:inherit (link)))))
-        
-        '(header-line 
-          ((default                                      (:inherit (mode-line))) (((type tty)) (:underline t :inverse-video nil)) 
-           (((class color grayscale) (background light)) (:box nil :foreground "#222222" :background "#bbbbbb")) 
-           (((class color grayscale) (background dark))  (:box nil :foreground "#bbbbbb" :background "#222222")) 
-           (((class mono) (background light))            (:underline t :box nil :inverse-video nil :foreground "#000000" :background "#ffffff")) 
-           (((class mono) (background dark))             (:underline t :box nil :inverse-video nil :foreground "#ffffff" :background "#000000"))))
-        
-        '(isearch
-          ((((class color) (min-colors 88) (background light)) (:foreground "#99ccee" :background "#444444")) 
-           (((class color) (min-colors 88) (background dark))  (:foreground "#bb3311" :background "#444444")) 
-           (((class color) (min-colors 16))                    (:foreground "#0088cc" :background "#444444"))
-           (((class color) (min-colors 8))                     (:foreground "#0088cc" :background "#444444")) (t (:inverse-video t))))
-        
-        '(isearch-fail
-          ((((class color) (min-colors 88) (background light)) (:background "#ffaaaa"))
-           (((class color) (min-colors 88) (background dark))  (:background "#880000"))
-           (((class color) (min-colors 16))                    (:background "#FF0000"))
-           (((class color) (min-colors 8))                     (:background "#FF0000"))
-           (((class color grayscale))                          (:foreground "#888888")) (t (:inverse-video t))))
-        
-        '(lazy-highlight
-          ((((class color) (min-colors 88) (background light)) (:background "#77bbdd"))
-           (((class color) (min-colors 88) (background dark)) (:background "#77bbdd"))
-           (((class color) (min-colors 16)) (:background "#4499ee"))
-           (((class color) (min-colors 8)) (:background "#4499ee")) (t (:underline t))))
-        
-        '(match
-          ((((class color) (min-colors 88) (background light)) (:background "#3388cc"))
-           (((class color) (min-colors 88) (background dark)) (:background "#3388cc"))
-           (((class color) (min-colors 8) (background light)) (:foreground "#000000" :background "#FFFF00"))
-           (((class color) (min-colors 8) (background dark)) (:foreground "#ffffff" :background "#0000FF")) 
-           (((type tty) (class mono)) (:inverse-video t)) (t (:background "#888888"))))
-        ))
+      '(tooltip ((default nil) (nil nil)))
+      '(next-error ((t          (:inherit (region)))))
+      '(query-replace ((t       (:inherit (isearch)))))
+      '(button ((t              (:inherit (link)))))
+      '(fixed-pitch ((t         (:family "Monospace")))) 
+      '(variable-pitch ((t      (:family "Sans Serif"))))
+      '(escape-glyph ((t        (:foreground "#FF6600"))))
+      '(mode-line-emphasis ((t  (:weight bold))))
+      '(mode-line-highlight ((t (:box nil (t (:inherit (highlight)))))))
+      
+      '(highlight 
+        ((((class color) (min-colors 88) (background light)) (:background "#003453")) 
+         (((class color) (min-colors 88) (background dark))  (:background "#003450")) 
+         (((class color) (min-colors 16) (background light)) (:background "#003450")) 
+         (((class color) (min-colors 16) (background dark))  (:background "#004560")) 
+         (((class color) (min-colors 8))                     (:foreground "#000000" :background "#00FF00")) (t (:inverse-video t))))
+     
+      '(shadow 
+        ((((class color grayscale) (min-colors 88) (background light)) (:foreground "#999999")) 
+         (((class color grayscale) (min-colors 88) (background dark))  (:foreground "#999999"))
+         (((class color) (min-colors 8) (background light))            (:foreground "#00ff00"))
+         (((class color) (min-colors 8) (background dark))             (:foreground "#ffff00"))))
+      
+      '(trailing-whitespace
+        ((((class color) (background light)) (:background "#ff0000"))
+         (((class color) (background dark))  (:background "#ff0000")) (t (:inverse-video t))))
+      
+      '(link
+        ((((class color) (min-colors 88) (background light)) (:underline t :foreground "#00b7f0")) 
+         (((class color) (background light))                 (:underline t :foreground "#0044FF")) 
+         (((class color) (min-colors 88) (background dark))  (:underline t :foreground "#0099aa"))
+         (((class color) (background dark))                  (:underline t :foreground "#0099aa")) (t (:inherit (underline)))))
+      
+      '(link-visited 
+        ((default                            (:inherit (link))) 
+         (((class color) (background light)) (:inherit (link))) 
+         (((class color) (background dark))  (:inherit (link)))))
+      
+      '(header-line 
+        ((default                                      (:inherit (mode-line))) (((type tty)) (:underline t :inverse-video nil)) 
+         (((class color grayscale) (background light)) (:box nil :foreground "#222222" :background "#bbbbbb")) 
+         (((class color grayscale) (background dark))  (:box nil :foreground "#bbbbbb" :background "#222222")) 
+         (((class mono) (background light))            (:underline t :box nil :inverse-video nil :foreground "#000000" :background "#ffffff")) 
+         (((class mono) (background dark))             (:underline t :box nil :inverse-video nil :foreground "#ffffff" :background "#000000"))))
+      
+      '(isearch
+        ((((class color) (min-colors 88) (background light)) (:foreground "#99ccee" :background "#444444")) 
+         (((class color) (min-colors 88) (background dark))  (:foreground "#bb3311" :background "#444444")) 
+         (((class color) (min-colors 16))                    (:foreground "#0088cc" :background "#444444"))
+         (((class color) (min-colors 8))                     (:foreground "#0088cc" :background "#444444")) (t (:inverse-video t))))
+      
+      '(isearch-fail
+        ((((class color) (min-colors 88) (background light)) (:background "#ffaaaa"))
+         (((class color) (min-colors 88) (background dark))  (:background "#880000"))
+         (((class color) (min-colors 16))                    (:background "#FF0000"))
+         (((class color) (min-colors 8))                     (:background "#FF0000"))
+         (((class color grayscale))                          (:foreground "#888888")) (t (:inverse-video t))))
+      
+      '(lazy-highlight
+        ((((class color) (min-colors 88) (background light)) (:background "#77bbdd"))
+         (((class color) (min-colors 88) (background dark)) (:background "#77bbdd"))
+         (((class color) (min-colors 16)) (:background "#4499ee"))
+         (((class color) (min-colors 8)) (:background "#4499ee")) (t (:underline t))))
+      
+      '(match
+        ((((class color) (min-colors 88) (background light)) (:background "#3388cc"))
+         (((class color) (min-colors 88) (background dark)) (:background "#3388cc"))
+         (((class color) (min-colors 8) (background light)) (:foreground "#000000" :background "#FFFF00"))
+         (((class color) (min-colors 8) (background dark)) (:foreground "#ffffff" :background "#0000FF")) 
+         (((type tty) (class mono)) (:inverse-video t)) (t (:background "#888888"))))
+      )
      
      (provide-theme 'bubbleberry)
      
-   #+end_src
+   #+END_SRC
 
 ** Modeline
-   #+begin_src emacs-lisp
-     ;; Helper function
+   #+BEGIN_SRC emacs-lisp
      (defun shorten-directory (dir max-length)
        "Show up to `max-length' characters of a directory name `dir'."
        (let ((path (reverse (split-string (abbreviate-file-name dir) "/")))
@@ -437,12 +350,20 @@
            (setq path (cdr path)))
          output))
      
+     (defun shorten-director (dir max-length)
+       (let ((scount (1- (count ?/ dir)))
+             (path (abbreviate-file-name dir)))
+         (dotimes (i scount)
+           (string-match "\\(/\\.?.\\)[^/]+" path)
+           (setq path (replace-match "\\1" nil nil path)))
+       path))
+     
      (setq-default mode-line-format
                    (list
                     ;; the buffer name; the file name as a tool tip
                     " "
                     '(:propertize (:eval (shorten-directory default-directory 15))
-                                  face mode-line-folder-face)
+                                 face mode-line-folder-face)
      
                     '(:eval (propertize "%b "
                                         'help-echo (buffer-file-name)))
@@ -492,14 +413,14 @@
                     "%-" ;; fill with '-'
                     ))     
      
-   #+end_src
+   #+END_SRC
 
 ** Frame
-   #+begin_src emacs-lisp
+   #+BEGIN_SRC emacs-lisp
      (setq default-frame-alist
            `((border-width . 0)
              (internal-border-width . 0)
              (vertical-scroll-bars . nil)
              (menu-bar-lines . nil)
              (tool-bar-lines . nil)))
-   #+end_src
+   #+END_SRC
